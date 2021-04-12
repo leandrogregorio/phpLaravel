@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Repositories\ClientRepository;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -15,10 +16,19 @@ class ClientController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $client = $this->client->all();
-        return response()->json($client,200);
+        $clientRepository = new ClientRepository($this->client);
+        
+        if($request->has('filter')) {
+            $clientRepository->filter($request->filter); 
+        }
+
+        if($request->has('attribute')) {
+            $clientRepository->selectAttributes($request->attribute);
+        }
+        
+        return response()->json($clientRepository->getResult(), 200);
     }
 
     
@@ -30,20 +40,11 @@ class ClientController extends Controller
      */
     public function store(Request $request)
     {
-        /*lembrando de incluir o accept no Header na aplicação Client para que seja 
-        posivel receber a validação via JSON*/
-        $regras = [
-            'email'=>'unique:clients',
-            'cpf_cnpj'=>'unique:clients',
-            'rg'=>'unique:clients'
-        ];
-        $feedback = [
-            'unique' => 'O :attribute do cliente já existe'
-            ];
+        $request->validate($this->client->rules(),$this->client->feedback());
 
-        $request->validate($regras,$feedback);
         $client = $this->client->create($request->all());
-        return response()->json($client,201);
+        
+        return response()->json(['registro'=>$client, 'msg'=> 'O registro foi criado com sucesso!'],201);
     }
 
     /**
@@ -52,7 +53,7 @@ class ClientController extends Controller
      * @param  Integer
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function view($id)
     {
         $client = $this->client->find($id);
         if ($client === null) {
@@ -76,21 +77,27 @@ class ClientController extends Controller
             return response()->json(['msg' => 'Impossivel realizar a atualização! Registro não encontrado.'],404);
         }
 
-        /*lembrando de incluir o accept no Header na aplicação Client para que seja 
-        posivel receber a validação via JSON*/
-        $regras = [
-            'email'=>'unique:clients',
-            'cpf_cnpj'=>'unique:clients',
-            'rg'=>'unique:clients'
-        ];
-        $feedback = [
-            'unique' => 'O :attribute do cliente já existe'
-            ];
+        if ($request->method() === 'PATCH') {
+            $regrasDinamicas = array();
 
-        $request->validate($regras,$feedback);
+            //pecorrendo todas as regras definidas no Model
+            foreach ($client->rules() as $input => $regras) {
+                
+                //coletar apenas as regras aplicaveis aos parametros parciais da requisição 
+                if (array_key_exists($input, $request->all())) {
+                    $regrasDinamicas[$input] = $regras;
+                }
+            }
 
-        $client->update($request->all());
-        return response()->json($client,200);
+            $request->validate($regrasDinamicas, $client->feedback());
+
+        }else {
+            $request->validate($client->rules(),$client->feedback());
+        }
+
+        $client->fill($request->all());
+        $client->save();
+        return response()->json(['registro'=>$client,'msg'=> 'O registro foi alterado com sucesso!'],200);
     }
 
     /**
@@ -99,7 +106,7 @@ class ClientController extends Controller
      * @param  Integer
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function delete($id)
     {
         
         $client = $this->client->find($id);

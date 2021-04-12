@@ -22,7 +22,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::get('listar', 'App\Http\Controllers\ClientController@index')->name('client.index');
 Route::post('cadastrar', 'App\Http\Controllers\ClientController@store')->name('client.store');
-Route::get('listar/{client}', 'App\Http\Controllers\ClientController@show')->name('client.show');
-Route::put('alterar/{client}', 'App\Http\Controllers\ClientController@update')->name('client.update');
-Route::patch('alterar/{client}', 'App\Http\Controllers\ClientController@update')->name('client.update');
-Route::delete('deletar/{client}', 'App\Http\Controllers\ClientController@destroy')->name('client.destroy');
+Route::get('listar/{id_client}', 'App\Http\Controllers\ClientController@view')->name('client.view');
+Route::put('alterar/{id_client}', 'App\Http\Controllers\ClientController@update')->name('client.update');
+Route::patch('alterar/{id_client}', 'App\Http\Controllers\ClientController@update')->name('client.updatePatch');
+Route::delete('deletar/{id_client}', 'App\Http\Controllers\ClientController@delete')->name('client.delete');
